@@ -21,10 +21,12 @@
 package org.xeustechnologies.treeing;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -54,15 +56,15 @@ public class TreeingTest {
 
     @Test
     public void testSearch() throws Exception {
-        FSDirectory index = FSDirectory.open( new File( "C:/test/luc" ) );
+        FSDirectory index = FSDirectory.open( Paths.get( "c:/test/luc" ) );
 
-        String querystr = "hello";
-        Query q = new QueryParser( Version.LUCENE_CURRENT, "contents", new StandardAnalyzer( Version.LUCENE_CURRENT ) )
+        String querystr = "Ankersø";
+        Query q = new QueryParser( "contents", new StandardAnalyzer() )
                 .parse( querystr );
 
         int hitsPerPage = 10;
-        IndexSearcher searcher = new IndexSearcher( index, true );
-        TopScoreDocCollector collector = TopScoreDocCollector.create( hitsPerPage, true );
+        IndexSearcher searcher = new IndexSearcher( DirectoryReader.open(index) );
+        TopScoreDocCollector collector = TopScoreDocCollector.create( hitsPerPage );
         searcher.search( q, collector );
         ScoreDoc[] hits = collector.topDocs().scoreDocs;
 

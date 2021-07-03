@@ -20,17 +20,19 @@
  */
 package org.xeustechnologies.treeing;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.file.Paths;
 
+import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.xeustechnologies.esl4j.LogManager;
 import org.xeustechnologies.esl4j.Logger;
 
@@ -43,22 +45,23 @@ public class HttpIndexer {
     private static final String MIME = "mime";
     private static final String URL = "url";
     private static final String CONTENTS = "contents";
+    private static final int MAX_TOKEN_COUNT = 10_000;
     private final IndexWriter writer;
     private Logger logger = LogManager.getLogger( HttpIndexer.class );
 
     public HttpIndexer(String indexDir) throws IOException {
-        FSDirectory dir = FSDirectory.open( new File( indexDir ) );
-        writer = new IndexWriter( dir, new StandardAnalyzer( Version.LUCENE_CURRENT ), true,
-                IndexWriter.MaxFieldLength.LIMITED );
+        FSDirectory dir = FSDirectory.open( Paths.get( indexDir ) );
+        writer = new IndexWriter( dir, new IndexWriterConfig(
+                new LimitTokenCountAnalyzer( new StandardAnalyzer(), MAX_TOKEN_COUNT ) ) );
     }
 
     public void indexUrl(String url, String content, String mime) {
         try {
             Document doc = new Document();
 
-            doc.add( new Field( CONTENTS, new StringReader( content ) ) );
-            doc.add( new Field( URL, url, Field.Store.YES, Field.Index.NOT_ANALYZED ) );
-            doc.add( new Field( MIME, mime, Field.Store.YES, Field.Index.NOT_ANALYZED ) );
+            doc.add( new TextField( CONTENTS, new StringReader( content ) ) );
+            doc.add( new StoredField( URL, url ) );
+            doc.add( new StoredField( MIME, mime ) );
 
             writer.addDocument( doc );
             logger.info( "Added: " + url );
@@ -73,7 +76,6 @@ public class HttpIndexer {
     }
 
     public void closeIndex() throws IOException {
-        writer.optimize();
         writer.close();
     }
 }
