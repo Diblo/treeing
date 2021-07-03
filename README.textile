@@ -4,18 +4,24 @@ Treeing a simple Java project that demonstrates Website crawling, indexing and s
 
 h1. Usage
 
-Treeing provides a simple set of classes, including a multi-threaded web crawler and a simple HTML parser, and is very easy to embed in Java application. 
+Treeing provides a simple set of classes, including a multi-threaded web crawler and a simple HTML parser, and is very easy to embed in Java application.
 
-h2. Crawling and indexing websites  
+h2. Crawling and indexing websites
 
 Below is an example of how to run the website crawler that crawls and indexes the web content.
 
-<pre>                                                                           
-<code>                                                                         
-  Thread t = new Thread( new WebCrawler( "http://www.python.org", 2, "c:/test/luc" ) );
-  t.start();
-  t.join();                                                                
-</code>                                                                         
+<pre>
+<code>
+    LogManager.setFactory(new ConsoleLogFactory());
+
+    try {
+        Thread t = new Thread( new WebCrawler( "https://www.python.org/", 2, "c:/test/luc" ) );
+        t.start();
+        t.join();
+    } catch (InterruptedException | IOException e) {
+        e.printStackTrace();
+    }
+</code>
 </pre>
 
 The above code snippet will crawl and index the entire web site.

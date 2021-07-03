@@ -21,6 +21,7 @@
 package org.xeustechnologies.treeing;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -32,7 +33,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -75,5 +76,22 @@ public class TreeingTest {
             Document d = searcher.doc( docId );
             System.out.println( ( i + 1 ) + ". " + d.get( "url" ) );
         }
+    }
+
+    private static void deleteDir(File file) {
+        File[] contents = file.listFiles();
+        if (contents != null) {
+            for (File f : contents) {
+                if (! Files.isSymbolicLink(f.toPath())) {
+                    deleteDir(f);
+                }
+            }
+        }
+        file.delete();
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        deleteDir(new File("C:/JUnit4"));
     }
 }
