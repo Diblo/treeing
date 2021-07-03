@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.xeustechnologies.esl4j.LogManager;
 import org.xeustechnologies.esl4j.Logger;
@@ -42,8 +41,7 @@ import org.xeustechnologies.treeing.Tag.LinkType;
  */
 public class WebCrawler extends HttpConnector implements Runnable {
 
-    private final BlockingQueue<String> urls = new LinkedBlockingQueue<String>();
-    private final List<String> crawledUrls = Collections.synchronizedList( new ArrayList<String>() );
+    private final CrawlQueue<String> urls = new CrawlQueue<>();
     private final int poolSize;
     private final HttpIndexer indexer;
     private Proxy proxy = Proxy.NO_PROXY;
@@ -66,7 +64,7 @@ public class WebCrawler extends HttpConnector implements Runnable {
             CrawlTask t[] = new CrawlTask[poolSize];
 
             for( int i = 0; i < poolSize; i++ ) {
-                t[i] = new CrawlTask( urls, crawledUrls );
+                t[i] = new CrawlTask( urls );
                 logger.info( "Staring CrawlTask Thread: " + ( i + 1 ) );
                 t[i].start();
             }
@@ -87,17 +85,15 @@ public class WebCrawler extends HttpConnector implements Runnable {
     }
 
     class CrawlTask extends Thread {
-        BlockingQueue<String> urls;
-        List<String> crawledUrls;
+        CrawlQueue<String> urls;
 
-        CrawlTask(BlockingQueue<String> urls, List<String> crawledUrls) {
+        CrawlTask(CrawlQueue<String> urls) {
             this.urls = urls;
-            this.crawledUrls = crawledUrls;
         }
 
         @Override
         public void run() {
-            while(true) {
+            while(!urls.isAllDone()) {
                 try {
                     String url = urls.take();
 
@@ -105,20 +101,20 @@ public class WebCrawler extends HttpConnector implements Runnable {
 
                     crawl( url );
 
+                    urls.done( url );
+
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
                     return;
                 } catch (FileNotFoundException e) {
                     logger.error( "URL: " + e.getMessage() + " not found" );
                 } catch (Exception e) {
                     e.printStackTrace();
+                    return;
                 }
             }
         }
 
         private void crawl(String urlstr) throws Exception {
-            crawledUrls.add( urlstr );
-
             // Only http/https links are crawled
             if( !urlstr.toLowerCase().startsWith( "http" ) ) {
                 return;
@@ -144,8 +140,7 @@ public class WebCrawler extends HttpConnector implements Runnable {
 
                         String nextUrl = nurl.toString();
 
-                        if( l.getLinkType() == LinkType.LOCAL && !crawledUrls.contains( nextUrl )
-                                && !urls.contains( nextUrl ) ) {
+                        if( l.getLinkType() == LinkType.LOCAL ) {
                             urls.put( nextUrl );
                         }
                     }
